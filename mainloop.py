@@ -1,5 +1,5 @@
 #파이게임 모듈 불러오기
-import pygame
+import pygame, math
 
 #파이게임 초기화
 pygame.init()
@@ -32,6 +32,13 @@ while True:
     screen.blit(castle, (0, 345))
 
     screen.blit(player,playerpos) #screen이라는 객체에 blit함수를 가져온다.
+
+    #6-1 캐릭터 회전
+    position = pygame.mouse.get_pos() #현재 마우스의 위치 값
+    angle = math.atan2(position[1]-(playerpos[1]+32), position[0]-(playerpos[0]+26))
+    playerrot = pygame.transform.rotate(player, 360-angle * 57.29) #마우스 위치로 일정하게 회전
+    playerpos1 = (playerpos[0]-playerrot.get_rect().width//2, playerpos[1]-playerrot.get_rect().height//2)
+    screen.blit(playerrot, playerpos1)
 
     #7. 화면을 다시 그린다.
     pygame.display.flip()#화면을 업데이트 = pygame.display.updata()
