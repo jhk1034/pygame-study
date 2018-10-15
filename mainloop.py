@@ -1,11 +1,15 @@
 #파이게임 모듈 불러오기
-import pygame, math
+import pygame, math, random
 
 #파이게임 초기화
 pygame.init()
 width, height = 640, 480
 keys = [False, False, False, False]
 playerpos = [100, 100]
+badtimer = 100 #적이 출현하는 시간 1000 = 1초
+badtimer1 = 0
+badguys = [[640,100]] #적이 출현하는 위치
+healthvalue = 194
 
 screen = pygame.display.set_mode((width, height))
 acc = [0, 0] #[적을 몇명 죽였는지,화살을 몇개를 쐈는지]
@@ -16,12 +20,16 @@ player = pygame.image.load("resources/images/dude.png")
 grass = pygame.image.load("resources/images/grass.png")
 castle = pygame.image.load("resources/images/castle.png")
 arrow = pygame.image.load("resources/images/bullet.png")
+badguyimg = pygame.image.load("resources/images/badguy.png")
+healthbar = pygame.image.load("resources/images/healthbar.png")
+health = pygame.image.load("resources/images/health.png")
 
 #4. 계속 화면이 보이도록 한다.
 
 while True:
-    #5. 화면을 깨끗하게 한다.
+    badtimer-=1
 
+    #5. 화면을 깨끗하게 한다.
     screen.fill((0,0,0))
 
     #6. 모든 요소들을 다시 그린다.
@@ -62,8 +70,63 @@ while True:
         arrow1 = pygame.transform.rotate(arrow, 360 - projectile[0] * 57.29)
         screen.blit(arrow1, (projectile[1], projectile[2]))
     
-    
-    #7. 화면을 다시 그린다.\
+    #6.3 적들을 화면에 그린다.
+    if badtimer == 0:
+        badguys.append([640, random.randint(50, 430)])
+        badtimer = 100-(badtimer1 * 2)
+        if badtimer1 >= 35:
+            badtimer1 = 35
+        else:
+            badtimer1 += 5
+
+    index = 0
+
+    for badguy in badguys:
+        if badguy[0] < -64:
+            badguys.pop(index)
+        else:
+            badguy[0] -= 7
+
+        #6.3.1 - 성을 공격
+        badrect = pygame.Rect(badguyimg.get_rect())
+        badrect.top=badguy[1]
+        badrect.left=badguy[0]
+        if badrect.left<64:
+            healthvalue -= random.randint(5, 20)
+            badguys.pop(index)
+
+        #6.3.2 - 적이 화살에 맞았을 때
+        index1 = 0
+        for bullet in arrows:
+            bullrect = pygame.Rect(arrow.get_rect())
+            bullrect.left=bullet[1]
+            bullrect.top=bullet[2]
+            if badrect.colliderect(bullrect): #충돌 했는가? badrect이 bullrect과 출동했는가?
+                acc[0]+=1
+                badguys.pop(index)
+                arrows.pop(index1)
+            index1 += 1
+
+        index += 1
+
+    for badguy in badguys:
+        screen.blit(badguyimg, badguy)
+
+
+    #6.4 - 시간 표시
+    font = pygame.font.Font(None, 24)
+    survivedtext = font.render(str(int(90000-pygame.time.get_ticks())) + " : " \
+                   + str(int((90000-pygame.time.get_ticks())/1000%60)).zfill(2), True, (0,0,0))
+    textRect = survivedtext.get_rect()
+    textRect.topright=[635, 5]
+    screen.blit(survivedtext, textRect)
+
+    #6.5 - 체력바 그리기
+    screen.blit(healthbar, (5,5))
+    for health1 in range(healthvalue):
+        screen.blit(health, (health1+8, 8 ))
+
+    #7. 화면을 다시 그린다.
     pygame.display.flip() #display.update
 
     #8 게임을 종료
@@ -74,7 +137,7 @@ while True:
             pygame.quit()
             exit(0)
 
-    #캐릭터 움직이기
+    #9.캐릭터 움직이기
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_w:
                 keys[0] = True
@@ -120,3 +183,18 @@ while True:
         playerpos[0] -= 5
     elif keys[3]:
         playerpos[0] += 5
+
+    #10 클리어/페일 조건달기
+        if pygame.time.get_ticks() >= 90000:
+            running = 0
+            exitcode = 1
+
+        if healthvalue <= 0:
+            running = 0
+            exitcode = 0
+        if acc[1] != 0:
+            accuracy = acc[0]*1.0/acc[1]*100
+        else:
+            accuracy = 0
+
+#11. 승/패 표시하기
